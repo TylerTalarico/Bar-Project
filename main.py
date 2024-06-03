@@ -1,3 +1,5 @@
+import serial
+
 import tkinter as tk
 from tkinter import ttk
 from HorizontalScrolledFrame import HorizontalScrolledFrame
@@ -30,6 +32,8 @@ drink_list = [
 ]
 num_drinks = 3
 selected_drink: Drink
+
+ser = serial.Serial("/dev/ttyS0", 9600)    #Open port with baud rate
 
 # Main window
 root = tk.Tk()
@@ -223,8 +227,34 @@ def mix_drink():
     if selected_drink is None:
         return None
     
+    command = []
 
-mix_btn = SizedButton(root, text="Mix!", style="Mix.TButton", width=BLOCK_WIDTH, height=BLOCK_HEIGHT)
+    for gred in selected_drink.get_ingredients():
+        if gred[2] == IngredientType.LIQUOR:
+            try:
+                idx = bar.liquors.index(gred[0])
+                command.append(108)
+                command.append(idx)
+                command.append(int(gred[1]))
+            except IndexError:
+                print(gred[0], ' could not be found')
+
+        elif gred[2] == IngredientType.MIXER:
+            try:
+                idx = bar.mixers.index(gred[0])
+                command.append(109)
+                command.append(idx)
+                command += list(int(gred[1]*1000).to_bytes(4))
+            except IndexError:
+                print(gred[0], ' could not be found')
+
+    command.append(4)
+    #print(bytearray(command))
+    ser.write(bytearray(command))
+
+    
+
+mix_btn = SizedButton(root, text="Mix!", style="Mix.TButton", width=BLOCK_WIDTH, height=BLOCK_HEIGHT, command=mix_drink)
 mix_btn.grid(row=0, column=3)
 
 
